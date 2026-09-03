@@ -1,0 +1,7 @@
+logs/
+__pycache__/
+*.pyc
+dags/__pycache__/
+pipeline/__pycache__/
+dbt_project/target/
+dbt_project/dbt_packages/
