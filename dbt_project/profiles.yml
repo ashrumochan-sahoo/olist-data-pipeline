@@ -1,0 +1,12 @@
+olist:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: postgres-olist
+      port: 5432
+      user: olist
+      password: olist
+      dbname: olist_db
+      schema: staging
+      threads: 4
