@@ -1,5 +1,4 @@
 import psycopg2
-import sys
 import logging
 
 logging.basicConfig(level=logging.INFO)
@@ -143,14 +142,7 @@ def run_all_checks():
     logger.info(f"Results: {len(passed)} passed, {len(failed)} failed")
 
     if failed:
-        logger.error("Failed checks:")
-        for name, _ in failed:
-            logger.error(f"  - {name}")
-        sys.exit(1)
-    else:
-        logger.info("All data quality checks passed.")
-        sys.exit(0)
+        failed_names = [name for name, _ in failed]
+        raise ValueError(f"Data quality checks failed: {failed_names}")
 
-
-if __name__ == "__main__":
-    run_all_checks()
+    logger.info("All data quality checks passed.")
