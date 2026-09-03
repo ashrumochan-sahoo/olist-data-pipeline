@@ -1,0 +1,13 @@
+FROM apache/airflow:2.8.1
+
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && apt-get clean
+
+USER airflow
+RUN pip install --no-cache-dir \
+    dbt-postgres==1.7.4 \
+    pandas==1.5.3 \
+    sqlalchemy==1.4.51 \
+    psycopg2-binary==2.9.9
