@@ -31,9 +31,8 @@ def get_engine():
 
 
 def create_raw_schema(engine):
-    with engine.connect() as conn:
+    with engine.begin() as conn:
         conn.execute(text("CREATE SCHEMA IF NOT EXISTS raw;"))
-        conn.commit()
     logger.info("Raw schema ready")
 
 
