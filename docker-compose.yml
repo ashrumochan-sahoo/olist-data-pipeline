@@ -1,0 +1,99 @@
+version: '3.8'
+
+x-airflow-common: &airflow-common
+  image: apache/airflow:2.8.1
+  environment:
+    &airflow-common-env
+    AIRFLOW__CORE__EXECUTOR: LocalExecutor
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres-airflow:5432/airflow
+    AIRFLOW__CORE__FERNET_KEY: ''
+    AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: 'true'
+    AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+    AIRFLOW__API__AUTH_BACKENDS: 'airflow.api.auth.backend.basic_auth'
+    PYTHONPATH: /opt/airflow
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./plugins:/opt/airflow/plugins
+    - ./pipeline:/opt/airflow/pipeline
+    - ./data:/opt/airflow/data
+    - ./dbt_project:/opt/airflow/dbt_project
+  depends_on:
+    postgres-airflow:
+      condition: service_healthy
+    postgres-olist:
+      condition: service_healthy
+
+services:
+
+  # --- Operational DB (raw + staging layers) ---
+  postgres-olist:
+    image: postgres:15
+    container_name: postgres-olist
+    environment:
+      POSTGRES_USER: olist
+      POSTGRES_PASSWORD: olist
+      POSTGRES_DB: olist_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_olist_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "olist"]
+      interval: 5s
+      retries: 5
+
+  # --- Airflow metadata DB ---
+  postgres-airflow:
+    image: postgres:15
+    container_name: postgres-airflow
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres_airflow_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 5s
+      retries: 5
+
+  # --- Airflow init (runs once to set up DB + admin user) ---
+  airflow-init:
+    <<: *airflow-common
+    container_name: airflow-init
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        airflow db migrate &&
+        airflow users create \
+          --username admin \
+          --firstname Admin \
+          --lastname User \
+          --role Admin \
+          --email admin@example.com \
+          --password admin
+    environment:
+      <<: *airflow-common-env
+    restart: on-failure
+
+  # --- Airflow webserver (UI at localhost:8080) ---
+  airflow-webserver:
+    <<: *airflow-common
+    container_name: airflow-webserver
+    command: webserver
+    ports:
+      - "8080:8080"
+    restart: always
+
+  # --- Airflow scheduler ---
+  airflow-scheduler:
+    <<: *airflow-common
+    container_name: airflow-scheduler
+    command: scheduler
+    restart: always
+
+volumes:
+  postgres_olist_data:
+  postgres_airflow_data:
