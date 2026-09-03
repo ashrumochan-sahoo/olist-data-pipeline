@@ -19,3 +19,6 @@ models:
     warehouse:
       +schema: warehouse
       +materialized: table
+    metrics:
+      +schema: metrics
+      +materialized: table
